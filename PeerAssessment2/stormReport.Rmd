@@ -1,0 +1,87 @@
+---
+title: "Study on impact of weather events in population health and economy of USA"
+author: "Juan Sebastián Beleño Díaz"
+date: "18 de noviembre de 2015"
+output: html_document
+---
+
+
+** Synopsis **
+
+This is a study about what type of weather events produce more harmful consecuences in  economy and population health in USA.
+
+** Data Processing **
+
+To reach the results shown in the *synopsis* was necessary to process U.S. 
+National Oceanic and Atmospheric Administration's (NOAA) storm database, 
+available in <http://rmarkdown.rstudio.com>, this file was already downloaded 
+in this repository and it's possible to find it as `repdata-data-StormData.csv`.
+
+It's mandatory to read and understand this dataset, for that reason It's loaded 
+the data and it's printed to know how is structured this data. 
+
+```{r cache=TRUE}
+stormData <- read.csv("repdata-data-StormData.csv")
+str(stormData)
+```
+
+Among all this data I picked fatalities and injuries as key fields to get results 
+about population health, and also I picked property damage as an indicator to show 
+results about economy impact in weather events.
+
+Taking this in mind, per each type of event  I calculate the number of fatalities 
+and injuries,and the total of property damage, with this data is possible to order 
+the fields picked to represent population health and economy after a weather event happened:
+
+```{r cache=TRUE, results='hide'}
+# Injuries and Fatalities is to proccess health population consecuences in weather events
+injuriesPerTypeOfEvent <- aggregate(INJURIES ~ EVTYPE, data = stormData, sum)
+fatalitiesPerTypeOfEvent <- aggregate(FATALITIES ~ EVTYPE, data = stormData, sum)
+
+# Property damage is to proccess economy consecuences in weather events
+propDamagePerTypeOfEvent <- aggregate(PROPDMG ~ EVTYPE, data = stormData, sum)
+
+# Fields picked are ordered by event type
+injuriesPerTypeOfEventOrdered <-
+    injuriesPerTypeOfEvent[order(injuriesPerTypeOfEvent$INJURIES, 
+                                 decreasing = TRUE),]
+fatalitiesPerTypeOfEventOrdered<- 
+    fatalitiesPerTypeOfEvent[order(fatalitiesPerTypeOfEvent$FATALITIES, 
+                                   decreasing =TRUE),]
+
+propDamagePerTypeOfEventOrdered <- 
+    propDamagePerTypeOfEvent[order(propDamagePerTypeOfEvent$PROPDMG,
+                                   decreasing = TRUE),]
+
+# Gráfico de daños por meses
+# Gráfico de daños por año
+```
+
+The following figure shows the top 5 of event types that produce more injuries, 
+fatalities and property damage in the U.S. population during all the time in 
+the data registered by NOAA.
+
+```{r cache=TRUE}
+# It's picked the top 5 of each field
+TopFiveEventTypesByInjuries <- head(injuriesPerTypeOfEventOrdered, 5)
+TopFiveEventTypesByFatalities <- head(fatalitiesPerTypeOfEventOrdered, 5)
+
+TopFiveEventTypesByPropDMG <- head(propDamagePerTypeOfEventOrdered, 5)
+
+# It's created a figure for each field
+figureEventTypesByInjuries <- ggplot(data=TopFiveEventTypesByInjuries, 
+                                     aes(x=EVTYPE, y=INJURIES))
+figureEventTypesByInjuries <- figureEventTypesByInjuries + 
+    geom_bar(stat = 'identity')
+
+figureEventTypesByFatalities <- ggplot(data=TopFiveEventTypesByFatalities, 
+                                     aes(x=EVTYPE, y=FATALITIES))
+figureEventTypesByFatalities <- figureEventTypesByFatalities + 
+    geom_bar(stat = 'identity')
+
+figureEventTypesByPropDMG <- ggplot(data=TopFiveEventTypesByPropDMG, 
+                                     aes(x=EVTYPE, y=PROPDMG))
+figureEventTypesByPropDMG <- figureEventTypesByPropDMG + 
+    geom_bar(stat = 'identity')
+
+```
