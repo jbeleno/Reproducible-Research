@@ -6,22 +6,31 @@ output: html_document
 ---
 
 
-** Synopsis **
+### Synopsis
 
-This is a study about what type of weather events produce more harmful consecuences in  economy and population health in USA.
+This is a study about what type of weather events produce more harmful consecuences in 
+economy and population health in USA and tornados definitely are the most harmlful
+weather event due to its big impact in injuries, fatalitites and property damage, 
+their influence is concentrated in dates close to April and some of November. Some
+weather events affects proportionally population health and economy, like floods,
+tornados, TSTM winds, among others, but some event types affect more to population
+health, like heat or excesive heat and this impact it's done during June (Summer),
+others event types affect more to property damage like thunderstorm winds. The most
+of the impact of weather events it's taken between March and October.
 
-** Data Processing **
+### Data Processing
 
 To reach the results shown in the *synopsis* was necessary to process U.S. 
 National Oceanic and Atmospheric Administration's (NOAA) storm database, 
-available in <http://rmarkdown.rstudio.com>, this file was already downloaded 
-in this repository and it's possible to find it as `repdata-data-StormData.csv`.
+available in <https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2>,
+this file was already downloaded in this repository and it's possible to find it as 
+`repdata-data-StormData.csv.bz2`.
 
 It's mandatory to read and understand this dataset, for that reason It's loaded 
 the data and it's printed to know how is structured this data. 
 
-```{r cache=TRUE}
-stormData <- read.csv("repdata-data-StormData.csv")
+```{r readingdata, cache=TRUE}
+stormData <- read.csv(bzfile("repdata-data-StormData.csv.bz2"))
 str(stormData)
 ```
 
@@ -29,12 +38,14 @@ Among all this data I picked fatalities and injuries as key fields to get result
 about population health, and also I picked property damage as an indicator to show 
 results about economy impact in weather events.
 
-Taking this in mind, per each type of event  I calculate the number of fatalities 
+Taking this in mind, per each type of event  I processed the total of fatalities 
 and injuries,and the total of property damage, with this data is possible to order 
-the fields picked to represent population health and economy after a weather event happened:
+the fields picked to represent population health and economy after a weather 
+event happened:
 
-```{r cache=TRUE, results='hide'}
-# Injuries and Fatalities is to proccess health population consecuences in weather events
+```{r fieldsinorder, cache=TRUE, results='hide'}
+# Injuries and Fatalities is to proccess health population consecuences in 
+# weather events
 injuriesPerTypeOfEvent <- aggregate(INJURIES ~ EVTYPE, data = stormData, sum)
 fatalitiesPerTypeOfEvent <- aggregate(FATALITIES ~ EVTYPE, data = stormData, sum)
 
@@ -53,35 +64,228 @@ propDamagePerTypeOfEventOrdered <-
     propDamagePerTypeOfEvent[order(propDamagePerTypeOfEvent$PROPDMG,
                                    decreasing = TRUE),]
 
-# Gráfico de daños por meses
-# Gráfico de daños por año
-```
-
-The following figure shows the top 5 of event types that produce more injuries, 
-fatalities and property damage in the U.S. population during all the time in 
-the data registered by NOAA.
-
-```{r cache=TRUE}
 # It's picked the top 5 of each field
 TopFiveEventTypesByInjuries <- head(injuriesPerTypeOfEventOrdered, 5)
 TopFiveEventTypesByFatalities <- head(fatalitiesPerTypeOfEventOrdered, 5)
 
 TopFiveEventTypesByPropDMG <- head(propDamagePerTypeOfEventOrdered, 5)
 
+```
+
+Also to have a big picture about the behaivor of weather events impact during the time 
+it's necesary to find the top 5 event type behaivor for each field picked and also it's 
+a good information to know the behaivor per dates. This is done with this code:
+
+```{r dataacrossthetime, cache=TRUE}
+# I get the event types with more impact on health population and economy in U.S.
+eventTypesWithMoreImpact <- c(
+                                    as.character(TopFiveEventTypesByInjuries$EVTYPE),
+                                    as.character(TopFiveEventTypesByFatalities$EVTYPE),
+                                    as.character(TopFiveEventTypesByPropDMG$EVTYPE)
+                            )
+eventTypesWithMoreImpact <- unique(eventTypesWithMoreImpact)
+
+# I subset the raw data just to contain the event types with most impact
+stormDataWithMoreImpact <- stormData[stormData$EVTYPE %in% eventTypesWithMoreImpact,]
+
+# It's created new fields to get years and month
+stormDataWithMoreImpact$Datetime <- strptime( 
+    stormDataWithMoreImpact$BGN_DATE, format='%m/%d/%Y  %H:%M:%S')
+    stormDataWithMoreImpact$Month <- 
+        as.numeric(format(stormDataWithMoreImpact$Datetime,'%m'))
+    stormDataWithMoreImpact$Year <- 
+        as.numeric(format(stormDataWithMoreImpact$Datetime,'%Y'))
+
+# It's created new datasets separated by month
+# I use sum instead of mean in this case because, there is a lack of data
+# but this lack affect in the same way each month
+
+injuriesPerEventTypeAndMonth <- aggregate(INJURIES ~ EVTYPE + Month, 
+                                          data = stormDataWithMoreImpact,
+                                          sum)
+fatalitiesPerTypeOfEventAndMonth <- aggregate(  FATALITIES ~ EVTYPE + Month, 
+                                                data = stormDataWithMoreImpact,
+                                                sum)
+propDamagePerTypeOfEventAndMonth <- aggregate(  PROPDMG ~ EVTYPE + Month, 
+                                                data = stormDataWithMoreImpact,
+                                                sum)
+
+# It's created new datasets separated by year
+# This time I use sum instead of mean because I want to see the behaivor
+# using this way and see the lack of data in past years.
+
+injuriesPerEventTypeAndYear <- aggregate(INJURIES ~ EVTYPE + Year, 
+                                          data = stormDataWithMoreImpact,
+                                          sum)
+fatalitiesPerTypeOfEventAndYear <- aggregate(  FATALITIES ~ EVTYPE + Year, 
+                                                data = stormDataWithMoreImpact,
+                                                sum)
+propDamagePerTypeOfEventAndYear <- aggregate(  PROPDMG ~ EVTYPE + Year, 
+                                                data = stormDataWithMoreImpact,
+                                                sum)
+
+```
+
+### Results
+
+The following figure shows the top 5 of event types that produce more injuries, 
+fatalities and property damage in the U.S. population during all the time in 
+the data registered by NOAA, in these figures EVTYPE represents the weather 
+event type and I think the others variables are clear.
+
+```{r figurestopfive, cache=TRUE, fig.height=10, fig.width=8, fig.cap="Top five event types with impact in injuries, fatalities and economy of USA"}
+    
+library(gridExtra)
+library(ggplot2)
+
 # It's created a figure for each field
 figureEventTypesByInjuries <- ggplot(data=TopFiveEventTypesByInjuries, 
                                      aes(x=EVTYPE, y=INJURIES))
 figureEventTypesByInjuries <- figureEventTypesByInjuries + 
-    geom_bar(stat = 'identity')
+                              geom_bar(stat = 'identity') +
+                              ggtitle("Top 5 event types with more injuries in U.S.")
 
 figureEventTypesByFatalities <- ggplot(data=TopFiveEventTypesByFatalities, 
                                      aes(x=EVTYPE, y=FATALITIES))
 figureEventTypesByFatalities <- figureEventTypesByFatalities + 
-    geom_bar(stat = 'identity')
+                                geom_bar(stat = 'identity') +
+                            ggtitle("Top 5 event types with more fatalities in U.S.")
 
 figureEventTypesByPropDMG <- ggplot(data=TopFiveEventTypesByPropDMG, 
                                      aes(x=EVTYPE, y=PROPDMG))
 figureEventTypesByPropDMG <- figureEventTypesByPropDMG + 
-    geom_bar(stat = 'identity')
+                             geom_bar(stat = 'identity') +
+                        ggtitle("Top 5 event types with more property damage in U.S.")
+
+# It's shown the graphics in a panel
+figuresTopFiveEventTypes <- list( figureEventTypesByInjuries, 
+                                  figureEventTypesByFatalities, 
+                                  figureEventTypesByPropDMG)
+
+do.call(grid.arrange,figuresTopFiveEventTypes)
 
 ```
+
+
+In the figure above it's obvious a big influence by far of tornados among any other 
+weather event type in population health(injuries and fatalities) and 
+economy(property damage), also we can appreciate that injuries are at least 5 
+times less frequent that fatalities, some event types affects population health 
+and economy proportionally as tornados, floods, TSTM winds among others, but 
+also there are some events with implications in one of this indicators as heat 
+and excesive heat that affect mostly the population health, but without cause 
+property damage. 
+
+Apart of figures I attached some tables with the top 10 of event type that causes 
+more impact in economy and population health in U.S.
+
+Here is the top 10 event types that produce more injuries in U.S.:
+
+```{r tablestopteninjuries,results='asis', cache=TRUE}
+library(xtable)
+tableTopTenInjuriesPerEventType <- xtable(head(injuriesPerTypeOfEventOrdered, 10))
+names(tableTopTenInjuriesPerEventType) <- c("Event Type", "Number of Injuries")
+print(tableTopTenInjuriesPerEventType, 
+      type="html",  
+      html.table.attributes = list("border='1' align='center' width='500px' "))
+```
+
+
+
+Here is the top 10 event types that produce more fatalities in U.S.:
+
+```{r tablestoptenfatalities,results='asis', cache=TRUE}
+library(xtable)
+tableTopTenFatalitiesPerEventType <- xtable(head(fatalitiesPerTypeOfEventOrdered, 10))
+names(tableTopTenFatalitiesPerEventType) <- c("Event Type", "Number of Fatalities")
+print(tableTopTenFatalitiesPerEventType, 
+      type="html",  
+      html.table.attributes = list("border='1' align='center' width='500px' "))
+```
+
+
+
+And finally here is the top 10 event types that produce more property damage in U.S.:
+
+```{r tablestoptenpropdmg,results='asis', cache=TRUE}
+library(xtable)
+tableTopTenPropDMGPerEventType <- xtable(head(propDamagePerTypeOfEventOrdered, 10))
+names(tableTopTenPropDMGPerEventType) <- c("Event Type", "Property damage")
+print(tableTopTenPropDMGPerEventType, 
+      type="html",  
+      html.table.attributes = list("border='1' align='center' width='500px' "))
+```
+
+Also is possible to realize that some weather events happen during some periods of time,
+so I think is a nice thing to see this data per year and see how the impact of weather 
+events is changing during the time. 
+
+```{r figuresperyear, cache=TRUE, fig.height=10, fig.width=8,fig.cap="Impact of weather events during the time"}
+injuriesPerYear <- qplot(Year, 
+                             INJURIES, 
+                             data = injuriesPerEventTypeAndYear, 
+                             geom = c("point", "line"), 
+                             col = EVTYPE)
+fatalitiesPerYear <- qplot(Year, 
+                             FATALITIES, 
+                             data = fatalitiesPerTypeOfEventAndYear, 
+                             geom = c("point", "line"), 
+                             col = EVTYPE)
+propDamagePerYear <- qplot(Year, 
+                             PROPDMG, 
+                             data = propDamagePerTypeOfEventAndYear, 
+                             geom = c("point", "line"), 
+                             col = EVTYPE)
+
+# Plot the data per year
+figuresPerYear <- list(injuriesPerYear,
+                           fatalitiesPerYear,
+                           propDamagePerYear)
+
+do.call(grid.arrange,figuresPerYear)
+```
+
+The very first thing we can see in this graphic is that exist some lack of data about 
+some event types in years before 1995, the second thing is that in population health 
+(injuries and fatalities) the event type with the most impact are tornados with some 
+spikes of injuries because floods in 1998 and spikes in fatalities because heat and 
+excesive heat in some recent years. The economy has a bunch of event types that 
+affects it in apparently the same level of property damage, but in recents years, 
+thunderstorm winds has dealt the major part of property damage.
+
+Some weather events just happen in some parts of the year, so it's cool to see when
+happen more weather events during a year. This could be seen in the next plot:
+
+```{r figurespermonth, cache=TRUE, fig.height=10, fig.width=8, fig.cap="Impact of weather events in economy and population health distributed per months"}
+injuriesPerMonth <- qplot(Month, 
+                             INJURIES, 
+                             data = injuriesPerEventTypeAndMonth, 
+                             geom = c("point", "line"), 
+                             col = EVTYPE)
+fatalitiesPerMonth <- qplot(Month, 
+                             FATALITIES, 
+                             data = fatalitiesPerTypeOfEventAndMonth, 
+                             geom = c("point", "line"), 
+                             col = EVTYPE)
+propDamagePerMonth <- qplot(Month, 
+                             PROPDMG, 
+                             data = propDamagePerTypeOfEventAndMonth, 
+                             geom = c("point", "line"), 
+                             col = EVTYPE)
+
+# Plot the data per Month
+figuresPerMonth <- list(injuriesPerMonth,
+                           fatalitiesPerMonth,
+                           propDamagePerMonth)
+
+do.call(grid.arrange,figuresPerMonth)
+```
+
+I made this graphic because I know that U.S. has stations, so it's pretty important to 
+point when weather events produce more impact in population health and economy.
+Tornados has a big relevance in months close to April, but decrease after that 
+with some minor spikes in November.
+
+The others event types (excesive heat, flash floods, floods, heat, lightnings, 
+thunderstorm winds and TSTM winds) have a raise close to June, with some 
+exceptions like the increasing amount of injueries during October due to floods.

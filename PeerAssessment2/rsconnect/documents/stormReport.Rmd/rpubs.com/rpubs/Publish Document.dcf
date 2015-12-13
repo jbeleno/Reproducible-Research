@@ -1,0 +1,7 @@
+name: Publish Document
+account: rpubs
+server: rpubs.com
+bundleId:
+        https://api.rpubs.com/api/v1/document/128033/684c180ae9774888bb1c21282262b2f0
+url: http://rpubs.com/jbeleno/128033
+when: 1448074063.36874
